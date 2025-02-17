@@ -1,8 +1,8 @@
 streamlit==1.38.0
-langchain==0.1
-langchain-community==0.3.0
-langchain-groq==0.2.0
-langchain-openai==0.2.0
+langchain==0.1.16
+langchain-community==0.0.29
+langchain-groq==0.1.0
+langchain-openai==0.1.1
 python-dotenv==1.0.1
 beautifulsoup4==4.12.3
 unstructured==0.15.13
