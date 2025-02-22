@@ -22,10 +22,13 @@ def carrega_youtube(video_id):
     return documento
 
 def carrega_pdf(caminho):
-    loader = PyPDFLoader(caminho)
-    lista_documentos = loader.load()
-    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
-    return documento
+    try:
+        loader = PyPDFLoader(caminho)
+        lista_documentos = loader.load()
+        documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+        return documento
+    except Exception as e:
+        return f"Erro ao carregar o PDF: {e}"
 
 def carrega_csv(caminho):
     loader = CSVLoader(caminho)
