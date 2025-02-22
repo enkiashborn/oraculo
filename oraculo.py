@@ -4,52 +4,40 @@ from langchain.memory import ConversationBufferMemory
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
-import requests
-from bs4 import BeautifulSoup
+from langchain_community.document_loaders import (
+    WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
+)
 
 # Funções para carregar documentos
 def carrega_site(url):
-    if not url:
-        return "Erro: Nenhuma URL fornecida."
-    
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url  # Adiciona 'https://' se não estiver presente
-    
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-        }
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()  # Levanta um erro se o status não for 200 (OK)
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        texto = soup.get_text(separator=' ', strip=True)
-        
-        if "Just a moment..." in texto or "Enable JavaScript and cookies to continue" in texto:
-            return "Erro: O site exige JavaScript ou cookies para carregar o conteúdo. Por favor, tente novamente ou carregue outro site."
-        
-        # Trunca o conteúdo do site para evitar exceder o limite de tokens
-        max_tokens = 1000  # Ajuste conforme necessário
-        texto_truncado = " ".join(texto.split()[:max_tokens])
-        return texto_truncado
-    except requests.exceptions.RequestException as e:
-        return f"Erro ao carregar o site: {e}"
+    loader = WebBaseLoader(url)
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
-def carrega_youtube(url):
-    # Implemente a lógica para carregar vídeos do YouTube
-    return "Conteúdo do YouTube carregado."
+def carrega_youtube(video_id):
+    loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
-def carrega_pdf(caminho_arquivo):
-    # Implemente a lógica para carregar PDFs
-    return "Conteúdo do PDF carregado."
+def carrega_pdf(caminho):
+    loader = PyPDFLoader(caminho)
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
-def carrega_csv(caminho_arquivo):
-    # Implemente a lógica para carregar CSVs
-    return "Conteúdo do CSV carregado."
+def carrega_csv(caminho):
+    loader = CSVLoader(caminho)
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
-def carrega_txt(caminho_arquivo):
-    # Implemente a lógica para carregar TXTs
-    return "Conteúdo do TXT carregado."
+def carrega_txt(caminho):
+    loader = TextLoader(caminho)
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
 TIPOS_ARQUIVOS_VALIDOS = ['Site', 'Youtube', 'Pdf', 'Csv', 'Txt']
 
@@ -59,7 +47,7 @@ CONFIG_MODELOS = {
         'chat': ChatGroq
     },
     'OpenAI': {
-        'modelos': ['gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo'],
+        'modelos': ['gpt-4o-mini', 'gpt-4o', 'o1-preview', 'o1-mini'],
         'chat': ChatOpenAI
     }
 }
@@ -75,18 +63,18 @@ def carrega_arquivos(tipo_arquivo, arquivo):
     elif tipo_arquivo == 'Pdf':
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp:
             temp.write(arquivo.read())
-            nome_temp = temp.name
-        return carrega_pdf(nome_temp)
+            temp_path = temp.name
+        return carrega_pdf(temp_path)
     elif tipo_arquivo == 'Csv':
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as temp:
             temp.write(arquivo.read())
-            nome_temp = temp.name
-        return carrega_csv(nome_temp)
+            temp_path = temp.name
+        return carrega_csv(temp_path)
     elif tipo_arquivo == 'Txt':
         with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as temp:
             temp.write(arquivo.read())
-            nome_temp = temp.name
-        return carrega_txt(nome_temp)
+            temp_path = temp.name
+        return carrega_txt(temp_path)
     else:
         return "Erro: Tipo de arquivo não suportado."
 
@@ -95,9 +83,7 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo):
         st.error("Por favor, insira uma API key válida.")
         return
     
-    documento = ""
-    if tipo_arquivo in TIPOS_ARQUIVOS_VALIDOS:
-        documento = carrega_arquivos(tipo_arquivo, arquivo)
+    documento = carrega_arquivos(tipo_arquivo, arquivo)
     
     # Verifica se houve erro ao carregar o documento
     if documento.startswith("Erro:"):
