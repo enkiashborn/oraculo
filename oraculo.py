@@ -88,10 +88,9 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo):
     
     documento = carrega_arquivos(tipo_arquivo, arquivo)
     
-    # Verifica se houve erro ao carregar o documento
     if documento.startswith("Erro:"):
-        st.error(documento)  # Exibe o erro no Streamlit
-        return  # Interrompe a execução da função
+        st.error(documento)
+        return
 
     system_message = '''Você é um assistente amigável chamado Oráculo.
     Você possui acesso às seguintes informações vindas 
@@ -107,8 +106,6 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo):
 
     Se a informação do documento for algo como "Just a moment...Enable JavaScript and cookies to continue" 
     sugira ao usuário carregar novamente o Oráculo!'''.format(tipo_arquivo, documento)
-
-    print(system_message)
 
     template = ChatPromptTemplate.from_messages([
         ('system', system_message),
@@ -130,10 +127,8 @@ def pagina_chat():
 
     memoria = st.session_state.get('memoria', MEMORIA)
     
-    # Limita o histórico de conversa às últimas 5 mensagens
     historico = memoria.buffer_as_messages
     if len(historico) > 5:
-        # Cria uma nova memória com as últimas 5 mensagens
         nova_memoria = ConversationBufferMemory(return_messages=True)
         for mensagem in historico[-5:]:
             if mensagem.type == "human":
