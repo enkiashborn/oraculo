@@ -107,6 +107,8 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo):
     Se a informação do documento for algo como "Just a moment...Enable JavaScript and cookies to continue" 
     sugira ao usuário carregar novamente o Oráculo!'''.format(tipo_arquivo, documento)
 
+    print("Conteúdo do system_message:", system_message)  # Log para depuração
+
     template = ChatPromptTemplate.from_messages([
         ('system', system_message),
         ('placeholder', '{chat_history}'),
@@ -149,6 +151,10 @@ def pagina_chat():
 
         chat = st.chat_message('ai')
         try:
+            print("Variáveis passadas ao chain.stream:", {  # Log para depuração
+                'input': input_usuario,
+                'chat_history': memoria.buffer_as_messages
+            })
             resposta = chat.write_stream(chain.stream({
                 'input': input_usuario, 
                 'chat_history': memoria.buffer_as_messages
