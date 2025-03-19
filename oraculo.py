@@ -131,32 +131,45 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_you
         st.error("Por favor, insira uma API key válida.")
         return
     
+    if provedor not in CONFIG_MODELOS:
+        st.error(f"Erro: O provedor '{provedor}' não é válido.")
+        return
+    
     documento = carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube)
     
     if documento.startswith("Erro:"):
         st.error(documento)
         return
 
-    system_message = '''Você é um assistente amigável chamado Oráculo.
+    system_message = f'''Você é um assistente amigável chamado Oráculo.
     Você possui acesso às seguintes informações vindas 
-    de um documento {}: 
+    de um documento {tipo_arquivo}: 
 
     ####
-    {}
+    {documento}
     ####
 
     Utilize as informações fornecidas para basear as suas respostas.
 
-    Sempre que houver $ na sua saída, substita por S.
+    Sempre que houver "$" na sua saída, substitua por "S".
 
     Se a informação do documento for algo como "Just a moment...Enable JavaScript and cookies to continue" 
-    sugira ao usuário carregar novamente o Oráculo!'''.format(tipo_arquivo, documento)
+    sugira ao usuário carregar novamente o Oráculo!'''
 
     print("Conteúdo do system_message:", system_message)  # Log para depuração
 
     template = ChatPromptTemplate.from_messages([
-    ('system', system_message),
-    ('human', '{input}')
+        ('system', system_message),
+        ('human', '{input}')
+    ])
+
+    try:
+        chat = CONFIG_MODELOS[provedor]['chat'](model=modelo, api_key=api_key)
+        chain = template | chat
+        st.session_state['chain'] = chain
+    except Exception as e:
+        st.error(f"Erro ao carregar o modelo: {e}")
+
 ])
 
 # Criando o modelo
