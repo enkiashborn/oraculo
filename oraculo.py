@@ -155,14 +155,16 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_you
     print("Conteúdo do system_message:", system_message)  # Log para depuração
 
     template = ChatPromptTemplate.from_messages([
-        ('system', system_message),
-        ('placeholder', '{chat_history}'),
-        ('user', '{input}')
-    ])
-    chat = CONFIG_MODELOS[provedor]['chat'](model=modelo, api_key=api_key)
-    chain = template | chat
+    ('system', system_message),
+    ('human', '{input}')
+])
 
-    st.session_state['chain'] = chain
+# Criando o modelo
+chat = CONFIG_MODELOS[provedor]['chat'](model=modelo, api_key=api_key)
+
+# Corrigindo a pipeline para passar apenas "input" (sem "chat_history")
+chain = template | chat
+st.session_state['chain'] = chain
 
 def pagina_chat():
     st.header('🤖Bem-vindo ao Oráculo', divider=True)
