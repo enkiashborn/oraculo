@@ -5,27 +5,10 @@ from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from googleapiclient.discovery import build
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptAvailable
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
-
-# Funções para carregar documentos
-def carrega_site(url):
-    loader = WebBaseLoader(url)
-    lista_documentos = loader.load()
-    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
-    return documento
-
-# Função para buscar detalhes do vídeo usando a API do YouTube
-def busca_detalhes_video(api_key, video_id):
-    youtube = build('youtube', 'v3', developerKey=api_key)
-    request = youtube.videos().list(
-        part='snippet',
-        id=video_id
-    )
-    response = request.execute()
-    return response
 
 # Função para buscar transcrição usando youtube_transcript_api
 def carrega_youtube(video_url, api_key):
@@ -43,10 +26,11 @@ def carrega_youtube(video_url, api_key):
         return documento
     except TranscriptsDisabled:
         return "Erro: Transcrição desabilitada para este vídeo."
-    except NoTranscriptAvailable:
-        return "Erro: Nenhuma transcrição disponível para este vídeo."
     except Exception as e:
+        if "NoTranscriptAvailable" in str(e):
+            return "Erro: Nenhuma transcrição disponível para este vídeo."
         return f"Erro ao carregar o vídeo do YouTube: {e}"
+
 
 def carrega_pdf(caminho):
     try:
