@@ -8,6 +8,11 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
+from youtube_transcript_api import (
+    YouTubeTranscriptApi,
+    TranscriptsDisabled,
+    NoTranscriptAvailable,
+)
 
 # Função para verificar URLs do YouTube
 def verifica_url_youtube(url):
@@ -34,6 +39,8 @@ def carrega_youtube(video_url):
         return documento
     except TranscriptsDisabled:
         return "Erro: Transcrição desabilitada para este vídeo."
+    except NoTranscriptAvailable:
+        return "Erro: Nenhuma transcrição disponível para este vídeo."
     except Exception as e:
         return f"Erro ao carregar o vídeo do YouTube: {e}"
 
