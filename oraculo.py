@@ -10,6 +10,9 @@ from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
 
+# Definindo os tipos de arquivos válidos
+TIPOS_ARQUIVOS_VALIDOS = ['PDF', 'CSV', 'Texto', 'Youtube', 'Site']
+
 # Função para buscar detalhes do vídeo usando a API do YouTube
 def busca_detalhes_video(api_key, video_id):
     youtube = build('youtube', 'v3', developerKey=api_key)
@@ -62,7 +65,7 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_you
     ####
     Utilize as informações fornecidas para basear as suas respostas.'''
 
-    template = ChatPromptTemplate.from_messages([
+    template = ChatPromptTemplate.from_messages([ 
         ('system', system_message),
         ('human', '{input}')
     ])
