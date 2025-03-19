@@ -16,13 +16,18 @@ def carrega_site(url):
     return documento
 
 def carrega_youtube(video_id, api_key_youtube=None):
+    # Se a chave da API do YouTube for fornecida, usá-la, caso contrário, usar o comportamento padrão
     if api_key_youtube:
         loader = YoutubeLoader(video_id, api_key=api_key_youtube, add_video_info=False, language=['pt'])
     else:
         loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
-    lista_documentos = loader.load()
-    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
-    return documento
+    
+    try:
+        lista_documentos = loader.load()
+        documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+        return documento
+    except Exception as e:
+        return f"Erro ao carregar o vídeo do YouTube: {str(e)}"
 
 def carrega_pdf(caminho):
     try:
@@ -65,7 +70,7 @@ def carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube=None):
     if tipo_arquivo == 'Site':
         return carrega_site(arquivo)
     elif tipo_arquivo == 'Youtube':
-        # Passa a chave da API do YouTube
+        # Passa a chave da API do YouTube, se fornecida
         return carrega_youtube(arquivo, api_key_youtube)
     elif tipo_arquivo == 'Pdf':
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp:
