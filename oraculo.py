@@ -19,15 +19,21 @@ def carrega_site(url):
 
 def carrega_youtube(video_url):
     try:
-        video_id = video_url.split("v=")[-1].split("&")[0]
+    from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
+except ImportError:
+    st.error("Erro: A biblioteca 'youtube_transcript_api' não está instalada. Instale-a com 'pip install youtube-transcript-api'.")
+    st.stop()
+
+def carrega_youtube(video_url):
+    try:
+        # Extrai o ID do vídeo da URL
+        video_id = video_url.split("v=")[-1].split("&")[0]  # Remove parâmetros adicionais
         loader = YoutubeLoader(video_id, add_video_info=False, language=['pt', 'en'])
         lista_documentos = loader.load()
         documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
         return documento
     except TranscriptsDisabled:
         return "Erro: Transcrição desabilitada para este vídeo."
-    except NoTranscriptAvailable:
-        return "Erro: Nenhuma transcrição disponível para este vídeo."
     except Exception as e:
         return f"Erro ao carregar o vídeo do YouTube: {e}"
 
