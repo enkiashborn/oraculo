@@ -16,14 +16,14 @@ def carrega_site(url):
     return documento
 
 def carrega_youtube(video_id):
-    # Verifique se o video_id está presente
+    # Verifique se o video_id foi passado corretamente
     if not video_id:
-        return "Erro: video_id não fornecido"
+        return "Erro: video_id não fornecido."
     
     try:
-        # Removendo o argumento `api_key` e deixando o YoutubeLoader lidar automaticamente
+        # Tentando carregar o vídeo com o YoutubeLoader sem passar a api_key
         loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
-        lista_documentos = loader.load()
+        lista_documentos = loader.load()  # Carregando o conteúdo do vídeo
         documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
         return documento
     except Exception as e:
@@ -116,13 +116,12 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_you
     Se a informação do documento for algo como "Just a moment...Enable JavaScript and cookies to continue" 
     sugira ao usuário carregar novamente o Oráculo!'''.format(tipo_arquivo, documento)
 
-    print("Conteúdo do system_message:", system_message)  # Log para depuração
-
     template = ChatPromptTemplate.from_messages([ 
         ('system', system_message),
         ('placeholder', '{chat_history}'),
         ('user', '{input}')
     ])
+
     chat = CONFIG_MODELOS[provedor]['chat'](model=modelo, api_key=api_key)
     chain = template | chat
 
