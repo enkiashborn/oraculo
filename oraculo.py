@@ -8,11 +8,17 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
-from youtube_transcript_api import (
-    YouTubeTranscriptApi,
-    TranscriptsDisabled,
-    NoTranscriptAvailable,
-)
+
+# Importação correta da biblioteca youtube_transcript_api
+try:
+    from youtube_transcript_api import (
+        YouTubeTranscriptApi,
+        TranscriptsDisabled,
+        NoTranscriptAvailable,
+    )
+except ImportError:
+    st.error("Erro: A biblioteca 'youtube_transcript_api' não está instalada. Instale-a com 'pip install youtube-transcript-api'.")
+    st.stop()
 
 # Função para verificar URLs do YouTube
 def verifica_url_youtube(url):
