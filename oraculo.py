@@ -15,15 +15,18 @@ def carrega_site(url):
     documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
     return documento
 
-def carrega_youtube(video_id):
-    # Verifique se o video_id foi passado corretamente
-    if not video_id:
-        return "Erro: video_id não fornecido."
+def carrega_youtube(url):
+    # Verifique se a URL foi fornecida corretamente
+    if not url:
+        return "Erro: URL não fornecida."
+    
+    # Extração do ID do vídeo a partir da URL do YouTube
+    video_id = url.split("v=")[-1].split("&")[0]  # Extrai o video_id após "v="
     
     try:
-        # Tentando carregar o vídeo com o YoutubeLoader sem passar a api_key
+        # Carregando o vídeo sem passar chave de API
         loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
-        lista_documentos = loader.load()  # Carregando o conteúdo do vídeo
+        lista_documentos = loader.load()
         documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
         return documento
     except Exception as e:
@@ -70,8 +73,7 @@ def carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube=None):
     if tipo_arquivo == 'Site':
         return carrega_site(arquivo)
     elif tipo_arquivo == 'Youtube':
-        # Verificar se a chave da API do YouTube está presente
-        return carrega_youtube(arquivo, api_key_youtube)
+        return carrega_youtube(arquivo)  # Passa a URL completa do YouTube
     elif tipo_arquivo == 'Pdf':
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp:
             temp.write(arquivo.read())
@@ -95,8 +97,8 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_you
         st.error("Por favor, insira uma API key válida.")
         return
     
-    documento = carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube)
-    
+    documento = carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube)  # Passando só a URL do arquivo
+
     if documento.startswith("Erro:"):
         st.error(documento)
         return
