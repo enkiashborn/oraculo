@@ -16,16 +16,16 @@ def carrega_site(url):
     return documento
 
 def carrega_youtube(video_id, api_key_youtube=None):
-    # Log para depuração
-    print(f"Chave API do YouTube fornecida: {api_key_youtube}")  # Verifique o valor da chave aqui
-
-    # Se a chave da API do YouTube for fornecida, usá-la, caso contrário, usar o comportamento padrão
+    # Verifique se o video_id e a chave API estão corretamente passados
+    if not video_id:
+        return "Erro: video_id não fornecido"
     if api_key_youtube:
-        loader = YoutubeLoader(video_id, api_key=api_key_youtube, add_video_info=False, language=['pt'])
+        print(f"Usando chave API do YouTube: {api_key_youtube}")  # Log para verificar a chave
     else:
-        loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
+        print("API do YouTube não fornecida, usando configuração padrão.")  # Log para verificar a ausência da chave
     
     try:
+        loader = YoutubeLoader(video_id, api_key=api_key_youtube, add_video_info=False, language=['pt'])
         lista_documentos = loader.load()
         documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
         return documento
@@ -73,7 +73,7 @@ def carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube=None):
     if tipo_arquivo == 'Site':
         return carrega_site(arquivo)
     elif tipo_arquivo == 'Youtube':
-        # Passa a chave da API do YouTube, se fornecida
+        # Verificar se a chave da API do YouTube está presente
         return carrega_youtube(arquivo, api_key_youtube)
     elif tipo_arquivo == 'Pdf':
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp:
