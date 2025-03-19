@@ -10,25 +10,57 @@ from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
 
-# Função para buscar transcrição usando youtube_transcript_api
+# Função para buscar detalhes do vídeo usando a API do YouTube
+def busca_detalhes_video(api_key, video_id):
+    youtube = build('youtube', 'v3', developerKey=api_key)
+    request = youtube.videos().list(
+        part='snippet',
+        id=video_id
+    )
+    response = request.execute()
+    return response
+
+# Função para buscar legendas pelo YouTube API
+def busca_legendas_youtube(api_key, video_id):
+    youtube = build('youtube', 'v3', developerKey=api_key)
+    
+    request = youtube.captions().list(
+        part="snippet",
+        videoId=video_id
+    )
+    response = request.execute()
+    
+    if not response.get("items"):
+        return "Erro: Nenhuma legenda disponível para este vídeo."
+    
+    # Pegando o ID da legenda
+    legenda_id = response["items"][0]["id"]
+
+    # Baixando a legenda
+    request = youtube.captions().download(id=legenda_id)
+    response = request.execute()
+    
+    return response.decode("utf-8")  # Retorna a legenda como texto
+
+# Função para carregar vídeo do YouTube com API
 def carrega_youtube(video_url, api_key):
     try:
         video_id = video_url.split("v=")[-1].split("&")[0]  # Extrai o ID do vídeo da URL
 
-        # Busca detalhes do vídeo usando a API do YouTube
+        # Busca detalhes do vídeo
         detalhes_video = busca_detalhes_video(api_key, video_id)
         if not detalhes_video['items']:
             return "Erro: Vídeo não encontrado."
 
-        # Busca a transcrição usando youtube_transcript_api
-        transcricao = YouTubeTranscriptApi.get_transcript(video_id, languages=['pt'])
-        documento = '\n\n'.join([linha['text'] for linha in transcricao])
-        return documento
-    except TranscriptsDisabled:
-        return "Erro: Transcrição desabilitada para este vídeo."
+        titulo = detalhes_video['items'][0]['snippet']['title']
+        descricao = detalhes_video['items'][0]['snippet']['description']
+        
+        # Busca legendas via API do YouTube
+        transcricao = busca_legendas_youtube(api_key, video_id)
+
+        return f"📺 **Título do Vídeo:** {titulo}\n\n📝 **Descrição:** {descricao}\n\n🗣 **Legendas:**\n{transcricao}"
+    
     except Exception as e:
-        if "NoTranscriptAvailable" in str(e):
-            return "Erro: Nenhuma transcrição disponível para este vídeo."
         return f"Erro ao carregar o vídeo do YouTube: {e}"
 
 
