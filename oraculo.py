@@ -9,12 +9,14 @@ from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
 
-# Corrigindo a importação com tratamento de erros
-try:
-    from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
-except ImportError:
-    st.error("Erro: A biblioteca 'youtube_transcript_api' não está instalada. Instale-a com 'pip install youtube-transcript-api'.")
-    st.stop()
+# Função para verificar URLs do YouTube
+def verifica_url_youtube(url):
+    """
+    Verifica se a URL é uma URL válida do YouTube.
+    """
+    if "youtube.com" in url or "youtu.be" in url:
+        return True
+    return False
 
 # Funções para carregar documentos
 def carrega_site(url):
@@ -199,7 +201,7 @@ def sidebar():
             arquivo = st.text_input('Digite a url do site')
         elif tipo_arquivo == 'Youtube':
             arquivo = st.text_input('Digite a url do vídeo')
-            if arquivo and not verifica_url_youtube(arquivo):
+            if arquivo and not verifica_url_youtube(arquivo):  # Verifica a URL do YouTube
                 st.error("Por favor, insira uma URL válida do YouTube.")
         elif tipo_arquivo == 'Pdf':
             arquivo = st.file_uploader('Faça o upload do arquivo pdf', type=['.pdf'])
