@@ -4,6 +4,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
+from googleapiclient.discovery import build
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptAvailable
 from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
@@ -15,11 +17,36 @@ def carrega_site(url):
     documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
     return documento
 
-def carrega_youtube(video_id):
-    loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
-    lista_documentos = loader.load()
-    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
-    return documento
+# Função para buscar detalhes do vídeo usando a API do YouTube
+def busca_detalhes_video(api_key, video_id):
+    youtube = build('youtube', 'v3', developerKey=api_key)
+    request = youtube.videos().list(
+        part='snippet',
+        id=video_id
+    )
+    response = request.execute()
+    return response
+
+# Função para buscar transcrição usando youtube_transcript_api
+def carrega_youtube(video_url, api_key):
+    try:
+        video_id = video_url.split("v=")[-1].split("&")[0]  # Extrai o ID do vídeo da URL
+
+        # Busca detalhes do vídeo usando a API do YouTube
+        detalhes_video = busca_detalhes_video(api_key, video_id)
+        if not detalhes_video['items']:
+            return "Erro: Vídeo não encontrado."
+
+        # Busca a transcrição usando youtube_transcript_api
+        transcricao = YouTubeTranscriptApi.get_transcript(video_id, languages=['pt'])
+        documento = '\n\n'.join([linha['text'] for linha in transcricao])
+        return documento
+    except TranscriptsDisabled:
+        return "Erro: Transcrição desabilitada para este vídeo."
+    except NoTranscriptAvailable:
+        return "Erro: Nenhuma transcrição disponível para este vídeo."
+    except Exception as e:
+        return f"Erro ao carregar o vídeo do YouTube: {e}"
 
 def carrega_pdf(caminho):
     try:
@@ -58,11 +85,13 @@ CONFIG_MODELOS = {
 # Inicializa a memória corretamente
 MEMORIA = ConversationBufferMemory(return_messages=True)
 
-def carrega_arquivos(tipo_arquivo, arquivo):
+def carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube=None):
     if tipo_arquivo == 'Site':
         return carrega_site(arquivo)
     elif tipo_arquivo == 'Youtube':
-        return carrega_youtube(arquivo)
+        if not api_key_youtube:
+            return "Erro: Chave da API do YouTube não fornecida."
+        return carrega_youtube(arquivo, api_key_youtube)
     elif tipo_arquivo == 'Pdf':
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp:
             temp.write(arquivo.read())
@@ -81,12 +110,12 @@ def carrega_arquivos(tipo_arquivo, arquivo):
     else:
         return "Erro: Tipo de arquivo não suportado."
 
-def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo):
+def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_youtube=None):
     if not api_key:
         st.error("Por favor, insira uma API key válida.")
         return
     
-    documento = carrega_arquivos(tipo_arquivo, arquivo)
+    documento = carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube)
     
     if documento.startswith("Erro:"):
         st.error(documento)
@@ -174,6 +203,7 @@ def sidebar():
             arquivo = st.text_input('Digite a url do site')
         elif tipo_arquivo == 'Youtube':
             arquivo = st.text_input('Digite a url do vídeo')
+            api_key_youtube = st.text_input('Adicione a API key do YouTube')
         elif tipo_arquivo == 'Pdf':
             arquivo = st.file_uploader('Faça o upload do arquivo pdf', type=['.pdf'])
         elif tipo_arquivo == 'Csv':
@@ -189,7 +219,7 @@ def sidebar():
         st.session_state[f'api_key_{provedor}'] = api_key
     
     if st.button('Inicializar Oráculo', use_container_width=True):
-        carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo)
+        carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_youtube)
     if st.button('Apagar Histórico de Conversa', use_container_width=True):
         st.session_state['memoria'] = ConversationBufferMemory(return_messages=True)
 
