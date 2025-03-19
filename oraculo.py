@@ -15,17 +15,14 @@ def carrega_site(url):
     documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
     return documento
 
-def carrega_youtube(video_id, api_key_youtube=None):
-    # Verifique se o video_id e a chave API estão corretamente passados
+def carrega_youtube(video_id):
+    # Verifique se o video_id está presente
     if not video_id:
         return "Erro: video_id não fornecido"
-    if api_key_youtube:
-        print(f"Usando chave API do YouTube: {api_key_youtube}")  # Log para verificar a chave
-    else:
-        print("API do YouTube não fornecida, usando configuração padrão.")  # Log para verificar a ausência da chave
     
     try:
-        loader = YoutubeLoader(video_id, api_key=api_key_youtube, add_video_info=False, language=['pt'])
+        # Removendo o argumento `api_key` e deixando o YoutubeLoader lidar automaticamente
+        loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
         lista_documentos = loader.load()
         documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
         return documento
