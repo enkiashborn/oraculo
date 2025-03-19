@@ -16,6 +16,9 @@ def carrega_site(url):
     return documento
 
 def carrega_youtube(video_id, api_key_youtube=None):
+    # Log para depuração
+    print(f"Chave API do YouTube fornecida: {api_key_youtube}")  # Verifique o valor da chave aqui
+
     # Se a chave da API do YouTube for fornecida, usá-la, caso contrário, usar o comportamento padrão
     if api_key_youtube:
         loader = YoutubeLoader(video_id, api_key=api_key_youtube, add_video_info=False, language=['pt'])
