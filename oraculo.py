@@ -8,7 +8,13 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptAvailable
+
+# Corrigindo a importação com tratamento de erros
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
+except ImportError:
+    st.error("Erro: A biblioteca 'youtube_transcript_api' não está instalada. Instale-a com 'pip install youtube-transcript-api'.")
+    st.stop()
 
 # Funções para carregar documentos
 def carrega_site(url):
@@ -19,15 +25,7 @@ def carrega_site(url):
 
 def carrega_youtube(video_url):
     try:
-    from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
-except ImportError:
-    st.error("Erro: A biblioteca 'youtube_transcript_api' não está instalada. Instale-a com 'pip install youtube-transcript-api'.")
-    st.stop()
-
-def carrega_youtube(video_url):
-    try:
-        # Extrai o ID do vídeo da URL
-        video_id = video_url.split("v=")[-1].split("&")[0]  # Remove parâmetros adicionais
+        video_id = video_url.split("v=")[-1].split("&")[0]  # Extrai o ID do vídeo da URL
         loader = YoutubeLoader(video_id, add_video_info=False, language=['pt', 'en'])
         lista_documentos = loader.load()
         documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
@@ -47,7 +45,7 @@ def carrega_pdf(caminho):
         return f"Erro ao carregar o PDF: {e}"
     finally:
         if os.path.exists(caminho):
-            os.remove(caminho)
+            os.remove(caminho)  # Remove o arquivo temporário após o uso
 
 def carrega_csv(caminho):
     try:
