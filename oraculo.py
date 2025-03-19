@@ -1,5 +1,4 @@
 import tempfile
-import os
 import streamlit as st
 from langchain.memory import ConversationBufferMemory
 from langchain_groq import ChatGroq
@@ -9,26 +8,6 @@ from langchain_community.document_loaders import (
     WebBaseLoader, YoutubeLoader, CSVLoader, PyPDFLoader, TextLoader
 )
 
-# Importação correta da biblioteca youtube_transcript_api
-try:
-    from youtube_transcript_api import (
-        YouTubeTranscriptApi,
-        TranscriptsDisabled,
-        NoTranscriptAvailable,
-    )
-except ImportError:
-    st.error("Erro: A biblioteca 'youtube_transcript_api' não está instalada. Instale-a com 'pip install youtube-transcript-api'.")
-    st.stop()
-
-# Função para verificar URLs do YouTube
-def verifica_url_youtube(url):
-    """
-    Verifica se a URL é uma URL válida do YouTube.
-    """
-    if "youtube.com" in url or "youtu.be" in url:
-        return True
-    return False
-
 # Funções para carregar documentos
 def carrega_site(url):
     loader = WebBaseLoader(url)
@@ -36,19 +15,11 @@ def carrega_site(url):
     documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
     return documento
 
-def carrega_youtube(video_url):
-    try:
-        video_id = video_url.split("v=")[-1].split("&")[0]  # Extrai o ID do vídeo da URL
-        loader = YoutubeLoader(video_id, add_video_info=False, language=['pt', 'en'])
-        lista_documentos = loader.load()
-        documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
-        return documento
-    except TranscriptsDisabled:
-        return "Erro: Transcrição desabilitada para este vídeo."
-    except NoTranscriptAvailable:
-        return "Erro: Nenhuma transcrição disponível para este vídeo."
-    except Exception as e:
-        return f"Erro ao carregar o vídeo do YouTube: {e}"
+def carrega_youtube(video_id):
+    loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
 def carrega_pdf(caminho):
     try:
@@ -58,33 +29,18 @@ def carrega_pdf(caminho):
         return documento
     except Exception as e:
         return f"Erro ao carregar o PDF: {e}"
-    finally:
-        if os.path.exists(caminho):
-            os.remove(caminho)  # Remove o arquivo temporário após o uso
 
 def carrega_csv(caminho):
-    try:
-        loader = CSVLoader(caminho)
-        lista_documentos = loader.load()
-        documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
-        return documento
-    except Exception as e:
-        return f"Erro ao carregar o CSV: {e}"
-    finally:
-        if os.path.exists(caminho):
-            os.remove(caminho)
+    loader = CSVLoader(caminho)
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
 def carrega_txt(caminho):
-    try:
-        loader = TextLoader(caminho)
-        lista_documentos = loader.load()
-        documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
-        return documento
-    except Exception as e:
-        return f"Erro ao carregar o TXT: {e}"
-    finally:
-        if os.path.exists(caminho):
-            os.remove(caminho)
+    loader = TextLoader(caminho)
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
 TIPOS_ARQUIVOS_VALIDOS = ['Site', 'Youtube', 'Pdf', 'Csv', 'Txt']
 
@@ -99,6 +55,7 @@ CONFIG_MODELOS = {
     }
 }
 
+# Inicializa a memória corretamente
 MEMORIA = ConversationBufferMemory(return_messages=True)
 
 def carrega_arquivos(tipo_arquivo, arquivo):
@@ -150,7 +107,7 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo):
     Se a informação do documento for algo como "Just a moment...Enable JavaScript and cookies to continue" 
     sugira ao usuário carregar novamente o Oráculo!'''.format(tipo_arquivo, documento)
 
-    st.write("Conteúdo do documento carregado:", documento)  # Log para depuração
+    print("Conteúdo do system_message:", system_message)  # Log para depuração
 
     template = ChatPromptTemplate.from_messages([
         ('system', system_message),
@@ -161,7 +118,6 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo):
     chain = template | chat
 
     st.session_state['chain'] = chain
-    st.success("Oráculo carregado com sucesso! Agora você pode conversar.")
 
 def pagina_chat():
     st.header('🤖Bem-vindo ao Oráculo', divider=True)
@@ -195,6 +151,10 @@ def pagina_chat():
 
         chat = st.chat_message('ai')
         try:
+            print("Variáveis passadas ao chain.stream:", {  # Log para depuração
+                'input': input_usuario,
+                'chat_history': memoria.buffer_as_messages
+            })
             resposta = chat.write_stream(chain.stream({
                 'input': input_usuario, 
                 'chat_history': memoria.buffer_as_messages
@@ -214,8 +174,6 @@ def sidebar():
             arquivo = st.text_input('Digite a url do site')
         elif tipo_arquivo == 'Youtube':
             arquivo = st.text_input('Digite a url do vídeo')
-            if arquivo and not verifica_url_youtube(arquivo):  # Verifica a URL do YouTube
-                st.error("Por favor, insira uma URL válida do YouTube.")
         elif tipo_arquivo == 'Pdf':
             arquivo = st.file_uploader('Faça o upload do arquivo pdf', type=['.pdf'])
         elif tipo_arquivo == 'Csv':
