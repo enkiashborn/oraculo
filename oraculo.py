@@ -15,22 +15,11 @@ def carrega_site(url):
     documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
     return documento
 
-def carrega_youtube(url):
-    # Verifique se a URL foi fornecida corretamente
-    if not url:
-        return "Erro: URL não fornecida."
-    
-    # Extração do ID do vídeo a partir da URL do YouTube
-    video_id = url.split("v=")[-1].split("&")[0]  # Extrai o video_id após "v="
-    
-    try:
-        # Carregando o vídeo sem passar chave de API
-        loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
-        lista_documentos = loader.load()
-        documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
-        return documento
-    except Exception as e:
-        return f"Erro ao carregar o vídeo do YouTube: {str(e)}"
+def carrega_youtube(video_id):
+    loader = YoutubeLoader(video_id, add_video_info=False, language=['pt'])
+    lista_documentos = loader.load()
+    documento = '\n\n'.join([doc.page_content for doc in lista_documentos])
+    return documento
 
 def carrega_pdf(caminho):
     try:
@@ -69,11 +58,11 @@ CONFIG_MODELOS = {
 # Inicializa a memória corretamente
 MEMORIA = ConversationBufferMemory(return_messages=True)
 
-def carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube=None):
+def carrega_arquivos(tipo_arquivo, arquivo):
     if tipo_arquivo == 'Site':
         return carrega_site(arquivo)
     elif tipo_arquivo == 'Youtube':
-        return carrega_youtube(arquivo)  # Passa a URL completa do YouTube
+        return carrega_youtube(arquivo)
     elif tipo_arquivo == 'Pdf':
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp:
             temp.write(arquivo.read())
@@ -92,13 +81,13 @@ def carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube=None):
     else:
         return "Erro: Tipo de arquivo não suportado."
 
-def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_youtube=None):
+def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo):
     if not api_key:
         st.error("Por favor, insira uma API key válida.")
         return
     
-    documento = carrega_arquivos(tipo_arquivo, arquivo, api_key_youtube)  # Passando só a URL do arquivo
-
+    documento = carrega_arquivos(tipo_arquivo, arquivo)
+    
     if documento.startswith("Erro:"):
         st.error(documento)
         return
@@ -118,12 +107,13 @@ def carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_you
     Se a informação do documento for algo como "Just a moment...Enable JavaScript and cookies to continue" 
     sugira ao usuário carregar novamente o Oráculo!'''.format(tipo_arquivo, documento)
 
-    template = ChatPromptTemplate.from_messages([ 
+    print("Conteúdo do system_message:", system_message)  # Log para depuração
+
+    template = ChatPromptTemplate.from_messages([
         ('system', system_message),
         ('placeholder', '{chat_history}'),
         ('user', '{input}')
     ])
-
     chat = CONFIG_MODELOS[provedor]['chat'](model=modelo, api_key=api_key)
     chain = template | chat
 
@@ -184,8 +174,6 @@ def sidebar():
             arquivo = st.text_input('Digite a url do site')
         elif tipo_arquivo == 'Youtube':
             arquivo = st.text_input('Digite a url do vídeo')
-            # Recebe a chave da API do YouTube
-            api_key_youtube = st.text_input('Adicione a API key do YouTube', value=st.session_state.get('api_key_youtube'))
         elif tipo_arquivo == 'Pdf':
             arquivo = st.file_uploader('Faça o upload do arquivo pdf', type=['.pdf'])
         elif tipo_arquivo == 'Csv':
@@ -201,8 +189,7 @@ def sidebar():
         st.session_state[f'api_key_{provedor}'] = api_key
     
     if st.button('Inicializar Oráculo', use_container_width=True):
-        carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo, api_key_youtube)
-    
+        carrega_modelo(provedor, modelo, api_key, tipo_arquivo, arquivo)
     if st.button('Apagar Histórico de Conversa', use_container_width=True):
         st.session_state['memoria'] = ConversationBufferMemory(return_messages=True)
 
