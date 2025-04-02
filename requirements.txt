@@ -12,5 +12,5 @@ lxml==5.2.1
 pyperclip==1.8.2
 python-dotenv==1.0.0
 tiktoken==0.5.2
-faiss-cgu
+faiss-cpu
 googlesearch-python==1.2.3
